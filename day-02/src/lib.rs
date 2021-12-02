@@ -21,7 +21,7 @@ impl FromStr for Direction {
 
 pub struct Instruction {
     pub direction: Direction,
-    pub amount: u32,
+    pub amount: i32,
 }
 
 impl FromStr for Instruction {
@@ -47,22 +47,26 @@ pub fn parse_instructions(lines: impl IntoIterator<Item = String>) -> impl Itera
 }
 
 pub struct Position {
-    pub horizontal_position: u32,
-    pub depth: u32,
+    pub horizontal_position: i32,
+    pub depth: i32,
 }
 
 impl FromIterator<Instruction> for Position {
     fn from_iter<T: IntoIterator<Item=Instruction>>(iter: T) -> Self {
-        let mut horizontal_position = 0_u32;
-        let mut depth = 0_u32;
+        let mut horizontal_position = 0;
+        let mut depth = 0;
+        let mut aim = 0;
 
         for instruction in iter {
             let Instruction { direction, amount } = instruction;
 
             match direction {
-                Direction::Up => depth -= amount,
-                Direction::Down => depth += amount,
-                Direction::Forward => horizontal_position += amount,
+                Direction::Down => aim += amount,
+                Direction::Up => aim -= amount,
+                Direction::Forward => {
+                    horizontal_position += amount;
+                    depth += aim * amount;
+                }
             }
         }
 
@@ -93,6 +97,6 @@ mod tests {
             .collect();
 
         assert_eq!(position.horizontal_position, 15);
-        assert_eq!(position.depth, 10);
+        assert_eq!(position.depth, 60);
     }
 }
