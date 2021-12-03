@@ -2,69 +2,90 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 
 type Number = u32;
-const BITS: usize = 32;
 
 struct PowerConsumption {
     gamma_rate: Number,
     epsilon_rate: Number,
 }
 
-impl FromIterator<Number> for PowerConsumption {
-    fn from_iter<T: IntoIterator<Item=Number>>(numbers: T) -> Self {
-        let mut counts = vec![0; BITS];
+impl PowerConsumption {
+    fn new(numbers: Vec<Number>, significant_bits: usize) -> Self {
+        let mut gamma_rate: Number = 0;
+        let mut epsilon_rate: Number = 0;
 
-        for number in numbers {
-            for position in 0..BITS {
-                let bit = number >> position & 1;
-
-                if bit == 0 {
-                    counts[position] -= 1;
-                } else {
-                    counts[position] += 1;
-                }
+        fn apply(common_bit: CommonBit, number: &mut Number, position: usize) {
+            match common_bit {
+                CommonBit::Zero => *number |= 0 << position,
+                CommonBit::One => *number |= 1 << position,
+                CommonBit::Equal => {}
             }
         }
 
-        let mut gamma_rate = 0;
-
-        for position in 0..BITS {
-            gamma_rate |= ((counts[position] > 0) as Number) << position;
+        for position in 0..significant_bits {
+            apply(CommonBit::most_at(numbers.iter(), position), &mut gamma_rate, position);
+            apply(CommonBit::least_at(numbers.iter(), position), &mut epsilon_rate, position);
         }
 
-        let mut mask = 0;
-
-        for position in 0..significant_bits(gamma_rate) {
-            mask |= 1 << position;
-        }
-
-        PowerConsumption {
+        Self {
             gamma_rate,
-            epsilon_rate: gamma_rate ^ mask,
+            epsilon_rate,
         }
     }
 }
 
-fn significant_bits(number: Number) -> usize {
-    let mut bits = 0_usize;
+#[derive(Copy, Clone)]
+enum CommonBit {
+    Zero,
+    One,
+    Equal,
+}
 
-    for position in 0..BITS {
-        if number >> position & 1 == 1 {
-            bits = position;
+impl CommonBit {
+    pub fn most_at<'a>(numbers: impl Iterator<Item = &'a Number>, position: usize) -> Self {
+        let mut count = 0;
+
+        for number in numbers {
+            let bit = number >> position & 1;
+
+            if bit == 0 {
+                count -= 1;
+            } else {
+                count += 1;
+            }
+        }
+
+        if count < 0 {
+            CommonBit::Zero
+        } else if count > 0 {
+            CommonBit::One
+        } else {
+            CommonBit::Equal
         }
     }
 
-    bits+1
+    pub fn least_at<'a>(numbers: impl Iterator<Item = &'a Number>, position: usize) -> Self {
+        Self::most_at(numbers, position).invert()
+    }
+
+    fn invert(self) -> Self {
+        match self {
+            CommonBit::One => CommonBit::Zero,
+            CommonBit::Zero => CommonBit::One,
+            CommonBit::Equal => CommonBit::Equal,
+        }
+    }
 }
 
 fn main() {
-    let numbers = File::open("./input.txt")
+    let numbers: Vec<Number> = File::open("./input.txt")
         .map(BufReader::new)
         .unwrap()
         .lines()
         .map(Result::unwrap)
-        .map(|line| Number::from_str_radix(line.as_str(), 2).unwrap());
+        .map(|line| Number::from_str_radix(line.as_str(), 2).unwrap())
+        .collect();
 
-    let PowerConsumption { gamma_rate, epsilon_rate } = numbers.collect();
+    let PowerConsumption { gamma_rate, epsilon_rate } = PowerConsumption::new(numbers, 12);
 
     println!("{}", gamma_rate * epsilon_rate);
 }
@@ -90,18 +111,9 @@ mod tests {
             0b_01010,
         ];
 
-        let PowerConsumption { gamma_rate, epsilon_rate } = FromIterator::from_iter(numbers);
+        let PowerConsumption { gamma_rate, epsilon_rate } = PowerConsumption::new(numbers, 5);
 
         assert_eq!(gamma_rate, 0b_10110);
         assert_eq!(epsilon_rate, 0b_01001);
-    }
-
-    #[test]
-    fn masked_negation() {
-        let x = 0b_00001010;
-        let mask = 0b_00001111;
-        let negated = x ^ mask;
-
-        assert_eq!(0b_00000101, negated);
     }
 }
