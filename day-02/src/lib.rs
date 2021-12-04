@@ -14,7 +14,7 @@ impl FromStr for Direction {
             "up" => Ok(Direction::Up),
             "down" => Ok(Direction::Down),
             "forward" => Ok(Direction::Forward),
-            variant => Err(format!("Invalid direction {}", variant))
+            variant => Err(format!("Invalid direction {}", variant)),
         }
     }
 }
@@ -42,7 +42,9 @@ impl FromStr for Instruction {
     }
 }
 
-pub fn parse_instructions(lines: impl IntoIterator<Item = String>) -> impl Iterator<Item = Result<Instruction, String>> {
+pub fn parse_instructions(
+    lines: impl IntoIterator<Item = String>,
+) -> impl Iterator<Item = Result<Instruction, String>> {
     lines.into_iter().map(|line| line.parse())
 }
 
@@ -52,7 +54,7 @@ pub struct Position {
 }
 
 impl FromIterator<Instruction> for Position {
-    fn from_iter<T: IntoIterator<Item=Instruction>>(iter: T) -> Self {
+    fn from_iter<T: IntoIterator<Item = Instruction>>(iter: T) -> Self {
         let mut horizontal_position = 0;
         let mut depth = 0;
         let mut aim = 0;

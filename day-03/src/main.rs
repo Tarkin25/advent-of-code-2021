@@ -66,18 +66,23 @@ fn co2_scrubber_rating(numbers: Vec<Number>, significant_bits: usize) -> Number 
     })
 }
 
-fn determine_rating<F>(mut numbers: Vec<Number>, significant_bits: usize, bit_criteria_provider: F) -> Number
+fn determine_rating<F>(
+    mut numbers: Vec<Number>,
+    significant_bits: usize,
+    bit_criteria_provider: F,
+) -> Number
 where
-    F: Fn(&[Number], usize) -> Number
+    F: Fn(&[Number], usize) -> Number,
 {
     let mut position = significant_bits;
 
     while numbers.len() > 1 {
         {
-            let position = position -1;
+            let position = position - 1;
             let bit_criteria = bit_criteria_provider(&numbers, position);
 
-            numbers = numbers.into_iter()
+            numbers = numbers
+                .into_iter()
                 .filter(|number| number >> position & 1 == bit_criteria)
                 .collect();
         }
@@ -110,18 +115,8 @@ mod tests {
     #[test]
     fn oxygen_generator_rating_works() {
         let numbers: Vec<Number> = vec![
-            0b_00100,
-            0b_11110,
-            0b_10110,
-            0b_10111,
-            0b_10101,
-            0b_01111,
-            0b_00111,
-            0b_11100,
-            0b_10000,
-            0b_11001,
-            0b_00010,
-            0b_01010,
+            0b_00100, 0b_11110, 0b_10110, 0b_10111, 0b_10101, 0b_01111, 0b_00111, 0b_11100,
+            0b_10000, 0b_11001, 0b_00010, 0b_01010,
         ];
 
         assert_eq!(oxygen_generator_rating(numbers, 5), 23);
@@ -130,18 +125,8 @@ mod tests {
     #[test]
     fn co2_scrubber_rating_works() {
         let numbers: Vec<Number> = vec![
-            0b_00100,
-            0b_11110,
-            0b_10110,
-            0b_10111,
-            0b_10101,
-            0b_01111,
-            0b_00111,
-            0b_11100,
-            0b_10000,
-            0b_11001,
-            0b_00010,
-            0b_01010,
+            0b_00100, 0b_11110, 0b_10110, 0b_10111, 0b_10101, 0b_01111, 0b_00111, 0b_11100,
+            0b_10000, 0b_11001, 0b_00010, 0b_01010,
         ];
 
         assert_eq!(co2_scrubber_rating(numbers, 5), 10);

@@ -16,7 +16,7 @@ pub fn count_increments(mut measurements: impl Iterator<Item = u32>) -> u32 {
     let mut current = if let Some(first) = measurements.next() {
         first
     } else {
-        return 0
+        return 0;
     };
 
     while let Some(next) = measurements.next() {
@@ -40,7 +40,7 @@ impl<T, I: Iterator<Item = T>> Windows<T, I> {
     pub fn new(mut iter: I, window_size: usize) -> Self {
         let mut current_window = Vec::with_capacity(window_size);
 
-        for _ in 0..window_size-1 {
+        for _ in 0..window_size - 1 {
             current_window.push(iter.next());
         }
 
@@ -54,20 +54,20 @@ impl<T, I: Iterator<Item = T>> Windows<T, I> {
     }
 }
 
-impl<T: Clone, I: Iterator<Item = T>> Iterator for Windows<T, I>
-{
+impl<T: Clone, I: Iterator<Item = T>> Iterator for Windows<T, I> {
     type Item = Vec<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.current_window[self.window_size-1] = self.iter.next();
+        self.current_window[self.window_size - 1] = self.iter.next();
 
-        let returned: Option<Vec<T>> = self.current_window
+        let returned: Option<Vec<T>> = self
+            .current_window
             .iter()
             .map(|element| element.as_ref().map(Clone::clone))
             .collect();
 
-        for i in 0..self.window_size-1 {
-            self.current_window[i] = self.current_window[i+1].take();
+        for i in 0..self.window_size - 1 {
+            self.current_window[i] = self.current_window[i + 1].take();
         }
 
         returned
@@ -83,7 +83,9 @@ impl<T: Debug, I: Iterator<Item = T>> Debug for Windows<T, I> {
 }
 
 pub trait WindowsExt<T>: Iterator<Item = T> {
-    fn windows(self, window_size: usize) -> Windows<T, Self> where Self: Sized;
+    fn windows(self, window_size: usize) -> Windows<T, Self>
+    where
+        Self: Sized;
 }
 
 impl<T, I: Iterator<Item = T>> WindowsExt<T> for I {
@@ -92,10 +94,14 @@ impl<T, I: Iterator<Item = T>> WindowsExt<T> for I {
     }
 }
 
-pub fn three_measurement_sums(measurements: impl Iterator<Item = u32>) -> impl Iterator<Item = u32> {
-    measurements
-        .windows(3)
-        .map(|window| window.into_iter().fold(0_u32, |current, next| current + next))
+pub fn three_measurement_sums(
+    measurements: impl Iterator<Item = u32>,
+) -> impl Iterator<Item = u32> {
+    measurements.windows(3).map(|window| {
+        window
+            .into_iter()
+            .fold(0_u32, |current, next| current + next)
+    })
 }
 
 #[cfg(test)]
@@ -131,12 +137,12 @@ mod tests {
 
     #[test]
     fn windows_works() {
-        let vec = vec![1,2,3,4,5];
+        let vec = vec![1, 2, 3, 4, 5];
         let mut windows = vec.into_iter().windows(3);
 
-        assert_eq!(windows.next(), Some(vec![1,2,3]));
-        assert_eq!(windows.next(), Some(vec![2,3,4]));
-        assert_eq!(windows.next(), Some(vec![3,4,5]));
+        assert_eq!(windows.next(), Some(vec![1, 2, 3]));
+        assert_eq!(windows.next(), Some(vec![2, 3, 4]));
+        assert_eq!(windows.next(), Some(vec![3, 4, 5]));
         assert_eq!(windows.next(), None);
     }
 }
