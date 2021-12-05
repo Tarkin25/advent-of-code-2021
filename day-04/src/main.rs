@@ -26,19 +26,32 @@ struct GameResult {
     winning_number: u8,
 }
 
-fn get_winning_board(drawn_numbers: Vec<u8>, mut boards: Vec<Board>) -> Option<GameResult> {
-    for number in drawn_numbers {
-        for i in 0..boards.len() {
-            if boards[i].mark_field_and_check_if_won(number) {
-                return Some(GameResult {
-                    winning_board: boards.remove(i),
-                    winning_number: number,
-                });
-            }
+fn get_last_winning_board(drawn_numbers: Vec<u8>, mut boards: Vec<Board>) -> GameResult {
+    let mut drawn_numbers = drawn_numbers.into_iter();
+
+    while let Some(number) = drawn_numbers.next() {
+        for board in &mut boards {
+            board.mark_field(number);
+        }
+
+        boards.retain(|board| !board.has_won());
+
+        if boards.len() == 1 {
+            break;
         }
     }
 
-    None
+    if let Some(number) = drawn_numbers.next() {
+        let mut board = boards.remove(0);
+        board.mark_field(number);
+
+        return GameResult {
+            winning_board: board,
+            winning_number: number,
+        }
+    }
+
+    unreachable!("You dun fucked up!")
 }
 
 fn get_score(mut lines: impl Iterator<Item = String>) -> u32 {
@@ -47,7 +60,7 @@ fn get_score(mut lines: impl Iterator<Item = String>) -> u32 {
     let GameResult {
         winning_board,
         winning_number,
-    } = get_winning_board(drawn_numbers, boards).expect("No winning board found");
+    } = get_last_winning_board(drawn_numbers, boards);
     let sum_of_unmarked: u32 = winning_board
         .rows
         .iter()
@@ -123,6 +136,40 @@ mod tests {
 
         let score = get_score(lines);
 
-        assert_eq!(score, 4512);
+        assert_eq!(score, 1924);
+    }
+
+    #[test]
+    fn get_last_winning_board_works() {
+        let mut lines = vec![
+            "7,4,9,5,11,17,23,2,0,14,21,24,10,16,13,6,15,25,12,22,18,20,8,19,3,26,1",
+            "",
+            "22 13 17 11  0",
+            " 8  2 23  4 24",
+            "21  9 14 16  7",
+            " 6 10  3 18  5",
+            " 1 12 20 15 19",
+            "",
+            " 3 15  0  2 22",
+            " 9 18 13 17  5",
+            "19  8  7 25 23",
+            "20 11 10 24  4",
+            "14 21 16 12  6",
+            "",
+            "14 21 17 24  4",
+            "10 16 15  9 19",
+            "18  8 23 26 20",
+            "22 11 13  6  5",
+            " 2  0 12  3  7",
+        ]
+            .into_iter()
+            .map(ToString::to_string);
+
+        let drawn_numbers = parse_numbers(&mut lines).unwrap();
+        let boards = parse_boards(lines).unwrap();
+
+        let GameResult { winning_number, .. } = get_last_winning_board(drawn_numbers, boards);
+
+        assert_eq!(winning_number, 13);
     }
 }

@@ -46,29 +46,31 @@ impl Board {
         Ok(Self { rows })
     }
 
-    pub fn mark_field_and_check_if_won(&mut self, number: u8) -> bool {
-        for row in 0..BOARD_SIZE {
-            for column in 0..BOARD_SIZE {
-                let board = &mut self.rows[row][column];
-
-                if board.number == number {
-                    board.marked = true;
-
-                    if self.check_if_row_won(row) || self.check_if_column_won(column) {
-                        return true;
-                    }
+    pub fn mark_field(&mut self, number: u8) {
+        for row in &mut self.rows {
+            for field in row {
+                if field.number == number {
+                    field.marked = true;
                 }
+            }
+        }
+    }
+
+    pub fn has_won(&self) -> bool {
+        if self.rows.iter().any(|row| row.iter().all(|field| field.marked)) {
+            return true;
+        }
+
+        for i in 0..BOARD_SIZE {
+            if self.has_won_column(i) {
+                return true;
             }
         }
 
         false
     }
 
-    fn check_if_row_won(&self, row: usize) -> bool {
-        self.rows[row].iter().all(|field| field.marked)
-    }
-
-    fn check_if_column_won(&self, column: usize) -> bool {
+    fn has_won_column(&self, column: usize) -> bool {
         for row in &self.rows {
             if !row[column].marked {
                 return false;
@@ -131,7 +133,7 @@ mod tests {
     }
 
     #[test]
-    fn check_if_row_won() {
+    fn has_won_when_won_by_row() {
         let board = Board {
             rows: [
                 [MARKED, MARKED, MARKED, MARKED, MARKED],
@@ -142,11 +144,11 @@ mod tests {
             ],
         };
 
-        assert!(board.check_if_row_won(0));
+        assert!(board.has_won());
     }
 
     #[test]
-    fn check_if_column_won() {
+    fn has_won_when_won_by_column() {
         let board = Board {
             rows: [
                 [MARKED, UNMARKED, UNMARKED, UNMARKED, UNMARKED],
@@ -157,34 +159,15 @@ mod tests {
             ],
         };
 
-        assert!(board.check_if_column_won(0));
+        assert!(board.has_won());
     }
 
     #[test]
-    fn mark_field_and_check_if_won_with_empty_board() {
+    fn mark_field() {
         let mut board = Board::default();
         board.rows[0][0].number = 1;
+        board.mark_field(1);
 
-        let won = board.mark_field_and_check_if_won(1);
         assert!(board.rows[0][0].marked);
-        assert!(!won);
-    }
-
-    #[test]
-    fn mark_field_and_check_if_won_with_winning_board() {
-        let mut board = Board {
-            rows: [
-                [UNMARKED, MARKED, MARKED, MARKED, MARKED],
-                [UNMARKED; 5],
-                [UNMARKED; 5],
-                [UNMARKED; 5],
-                [UNMARKED; 5],
-            ],
-        };
-        board.rows[0][0].number = 1;
-
-        let won = board.mark_field_and_check_if_won(1);
-        assert!(board.rows[0][0].marked);
-        assert!(won);
     }
 }
