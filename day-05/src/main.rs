@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::str::FromStr;
-use crate::line::{DirectionType, Line};
+use crate::line::{Line};
 use crate::point::Point;
 
 pub mod point;
@@ -27,12 +27,6 @@ fn parse_lines(lines: impl Iterator<Item = String>) -> impl Iterator<Item = Line
 }
 
 fn count_dangerous_overlaps(lines: impl Iterator<Item = Line>) -> usize {
-    let lines = lines.filter(|line| {
-        match line.direction() {
-            DirectionType::Horizontal | DirectionType::Vertical => true,
-            _ => false,
-        }
-    });
     let overlap_diagram = overlap_diagram(lines);
 
     overlap_diagram.values()
@@ -89,6 +83,6 @@ mod tests {
             .map(ToString::to_string);
         let overlap_counter = count_dangerous_overlaps(parse_lines(lines.into_iter()));
 
-        assert_eq!(overlap_counter, 5);
+        assert_eq!(overlap_counter, 12);
     }
 }
