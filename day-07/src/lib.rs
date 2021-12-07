@@ -21,7 +21,7 @@ trait FuelTo {
 
 impl FuelTo for usize {
     fn fuel_to(self, target: Self) -> Self {
-        self.diff(target)
+        (1..=self.diff(target)).sum()
     }
 }
 
@@ -55,13 +55,13 @@ mod tests {
     #[test]
     fn optimal_position_works() {
         let positions = vec![16,1,2,0,4,2,7,1,2,14];
-        assert_eq!(Some((2, 37)), optimal_position(positions));
+        assert_eq!(Some((5, 168)), optimal_position(positions));
     }
 
     #[test]
     fn fuel_consumption_works() {
         let positions = vec![1,2,4,5];
-        assert_eq!(fuel_consumption(&positions, 3), 6);
-        assert_eq!(fuel_consumption(&positions, 1), 8);
+        assert_eq!(fuel_consumption(&positions, 3), 8);
+        assert_eq!(fuel_consumption(&positions, 1), 17);
     }
 }
