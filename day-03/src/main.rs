@@ -81,10 +81,7 @@ where
             let position = position - 1;
             let bit_criteria = bit_criteria_provider(&numbers, position);
 
-            numbers = numbers
-                .into_iter()
-                .filter(|number| number >> position & 1 == bit_criteria)
-                .collect();
+            numbers.retain(|number| number >> position & 1 == bit_criteria);
         }
 
         position -= 1;
