@@ -17,16 +17,17 @@ fn parse_boards(lines: impl Iterator<Item = String>) -> Result<Vec<Board>, Strin
     Ok(boards)
 }
 
-fn parse_numbers(lines: &mut impl Iterator<Item = String>) -> Result<Vec<u8>, ParseIntError> {
+fn parse_numbers(lines: &mut impl Iterator<Item = String>) -> Result<Vec<u32>, ParseIntError> {
     lines.next().unwrap().split(",").map(str::parse).collect()
 }
 
+#[derive(Debug)]
 struct GameResult {
     winning_board: Board,
-    winning_number: u8,
+    winning_number: u32,
 }
 
-fn get_last_winning_board(drawn_numbers: Vec<u8>, mut boards: Vec<Board>) -> GameResult {
+fn get_last_winning_board(drawn_numbers: Vec<u32>, mut boards: Vec<Board>) -> GameResult {
     let mut drawn_numbers = drawn_numbers.into_iter();
 
     while let Some(number) = drawn_numbers.next() {
@@ -41,13 +42,21 @@ fn get_last_winning_board(drawn_numbers: Vec<u8>, mut boards: Vec<Board>) -> Gam
         }
     }
 
-    if let Some(number) = drawn_numbers.next() {
-        let mut board = boards.remove(0);
+    while let Some(number) = drawn_numbers.next() {
+        let board = &mut boards[0];
         board.mark_field(number);
 
-        return GameResult {
-            winning_board: board,
-            winning_number: number,
+        if board.has_won() {
+            let board = boards.remove(0);
+
+            let result = GameResult {
+                winning_board: board,
+                winning_number: number,
+            };
+
+            println!("{:?}", &result);
+
+            return result;
         }
     }
 
@@ -61,13 +70,8 @@ fn get_score(mut lines: impl Iterator<Item = String>) -> u32 {
         winning_board,
         winning_number,
     } = get_last_winning_board(drawn_numbers, boards);
-    let sum_of_unmarked: u32 = winning_board
-        .rows
-        .iter()
-        .map(|row| row.iter().filter(|field| !field.marked).map(|field| field.number as u32).sum::<u32>())
-        .sum();
 
-    sum_of_unmarked * (winning_number as u32)
+    winning_board.sum_of_unmarked() * (winning_number as u32)
 }
 
 fn main() {
@@ -168,8 +172,10 @@ mod tests {
         let drawn_numbers = parse_numbers(&mut lines).unwrap();
         let boards = parse_boards(lines).unwrap();
 
-        let GameResult { winning_number, .. } = get_last_winning_board(drawn_numbers, boards);
+        let GameResult { winning_number, winning_board } = get_last_winning_board(drawn_numbers, boards);
 
         assert_eq!(winning_number, 13);
+        assert_eq!(winning_board.sum_of_unmarked(), 148);
+
     }
 }

@@ -2,12 +2,12 @@ const BOARD_SIZE: usize = 5;
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub struct Field {
-    pub number: u8,
+    pub number: u32,
     pub marked: bool,
 }
 
 impl Field {
-    pub fn new(number: u8) -> Self {
+    pub fn new(number: u32) -> Self {
         Self {
             number,
             marked: false,
@@ -31,7 +31,7 @@ impl Board {
 
             for x in 0..BOARD_SIZE {
                 let number = line.next().ok_or(format!("Expected field {}", x))?;
-                let number: u8 = number
+                let number: u32 = number
                     .parse()
                     .map_err(|_| "Expected field to be a number".to_string())?;
 
@@ -46,7 +46,7 @@ impl Board {
         Ok(Self { rows })
     }
 
-    pub fn mark_field(&mut self, number: u8) {
+    pub fn mark_field(&mut self, number: u32) {
         for row in &mut self.rows {
             for field in row {
                 if field.number == number {
@@ -78,6 +78,12 @@ impl Board {
         }
 
         true
+    }
+
+    pub fn sum_of_unmarked(&self) -> u32 {
+        self.rows.iter()
+            .map(|row| row.iter().filter(|field| !field.marked).map(|field| field.number as u32).sum::<u32>())
+            .sum()
     }
 }
 
