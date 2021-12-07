@@ -63,7 +63,7 @@ impl<T: Clone, I: Iterator<Item = T>> Iterator for Windows<T, I> {
         let returned: Option<Vec<T>> = self
             .current_window
             .iter()
-            .map(|element| element.as_ref().map(Clone::clone))
+            .cloned()
             .collect();
 
         for i in 0..self.window_size - 1 {
