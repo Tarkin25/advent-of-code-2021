@@ -30,43 +30,52 @@ pub fn count_increments(mut measurements: impl Iterator<Item = u32>) -> u32 {
     increments
 }
 
-pub struct Windows<T, I: Iterator<Item = T>> {
-    window_size: usize,
-    current_window: Vec<Option<T>>,
+pub struct Windows<T, I: Iterator<Item = T>, const WINDOW_SIZE: usize> {
+    current_window: [Option<T>; WINDOW_SIZE],
     iter: I,
 }
 
-impl<T, I: Iterator<Item = T>> Windows<T, I> {
-    pub fn new(mut iter: I, window_size: usize) -> Self {
-        let mut current_window = Vec::with_capacity(window_size);
+impl<T: Clone, I: Iterator<Item = T>, const WINDOW_SIZE: usize> Windows<T, I, WINDOW_SIZE> {
+    const INIT: Option<T> = None;
 
-        for _ in 0..window_size - 1 {
-            current_window.push(iter.next());
+    pub fn new(mut iter: I) -> Self {
+        let mut current_window: [Option<T>; WINDOW_SIZE] = [Self::INIT; WINDOW_SIZE];
+
+        for i in 0..WINDOW_SIZE - 1 {
+            current_window[i] = iter.next();
         }
 
-        current_window.push(None);
-
         Self {
-            window_size,
             current_window,
             iter,
         }
     }
+
+    fn prepare_return_value(&self) -> Option<[T; WINDOW_SIZE]> {
+        let mut return_value: [Option<T>; WINDOW_SIZE] = [Self::INIT; WINDOW_SIZE];
+
+        for i in 0..WINDOW_SIZE {
+            if let Some(value) = &self.current_window[i] {
+                return_value[i] = Some(value.clone());
+            } else {
+                return None;
+            }
+        }
+
+        let return_value = return_value.map(Option::unwrap);
+        Some(return_value)
+    }
 }
 
-impl<T: Clone, I: Iterator<Item = T>> Iterator for Windows<T, I> {
-    type Item = Vec<T>;
+impl<T: Clone, I: Iterator<Item = T>, const WINDOW_SIZE: usize> Iterator for Windows<T, I, WINDOW_SIZE> {
+    type Item = [T; WINDOW_SIZE];
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.current_window[self.window_size - 1] = self.iter.next();
+        self.current_window[WINDOW_SIZE - 1] = self.iter.next();
 
-        let returned: Option<Vec<T>> = self
-            .current_window
-            .iter()
-            .cloned()
-            .collect();
+        let returned = self.prepare_return_value();
 
-        for i in 0..self.window_size - 1 {
+        for i in 0..WINDOW_SIZE - 1 {
             self.current_window[i] = self.current_window[i + 1].take();
         }
 
@@ -74,7 +83,7 @@ impl<T: Clone, I: Iterator<Item = T>> Iterator for Windows<T, I> {
     }
 }
 
-impl<T: Debug, I: Iterator<Item = T>> Debug for Windows<T, I> {
+impl<T: Debug, I: Iterator<Item = T>, const WINDOW_SIZE: usize> Debug for Windows<T, I, WINDOW_SIZE> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Windows")
             .field("current_window", &self.current_window)
@@ -83,24 +92,24 @@ impl<T: Debug, I: Iterator<Item = T>> Debug for Windows<T, I> {
 }
 
 pub trait WindowsExt<T>: Iterator<Item = T> {
-    fn windows(self, window_size: usize) -> Windows<T, Self>
+    fn windows<const WINDOW_SIZE: usize>(self) -> Windows<T, Self, WINDOW_SIZE>
     where
         Self: Sized;
 }
 
-impl<T, I: Iterator<Item = T>> WindowsExt<T> for I {
-    fn windows(self, window_size: usize) -> Windows<T, Self> {
-        Windows::new(self, window_size)
+impl<T: Clone, I: Iterator<Item = T>> WindowsExt<T> for I {
+    fn windows<const WINDOW_SIZE: usize>(self) -> Windows<T, Self, WINDOW_SIZE> {
+        Windows::new(self)
     }
 }
 
 pub fn three_measurement_sums(
     measurements: impl Iterator<Item = u32>,
 ) -> impl Iterator<Item = u32> {
-    measurements.windows(3).map(|window| {
+    measurements.windows::<3>().map(|window| {
         window
             .into_iter()
-            .fold(0_u32, |current, next| current + next)
+            .sum()
     })
 }
 
@@ -138,11 +147,11 @@ mod tests {
     #[test]
     fn windows_works() {
         let vec = vec![1, 2, 3, 4, 5];
-        let mut windows = vec.into_iter().windows(3);
+        let mut windows = vec.into_iter().windows::<3>();
 
-        assert_eq!(windows.next(), Some(vec![1, 2, 3]));
-        assert_eq!(windows.next(), Some(vec![2, 3, 4]));
-        assert_eq!(windows.next(), Some(vec![3, 4, 5]));
+        assert_eq!(windows.next(), Some([1, 2, 3]));
+        assert_eq!(windows.next(), Some([2, 3, 4]));
+        assert_eq!(windows.next(), Some([3, 4, 5]));
         assert_eq!(windows.next(), None);
     }
 }
