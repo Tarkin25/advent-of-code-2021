@@ -115,6 +115,9 @@ version = "0.1.0"
 [[package]]
 name = "day-08"
 version = "0.1.0"
+dependencies = [
+ "input",
+]
 
 [[package]]
 name = "dotenv"
@@ -346,6 +349,10 @@ dependencies = [
  "autocfg",
  "hashbrown",
 ]
+
+[[package]]
+name = "input"
+version = "0.1.0"
 
 [[package]]
 name = "ipnet"
