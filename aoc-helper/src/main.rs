@@ -13,7 +13,11 @@ use reqwest::header::COOKIE;
 fn main() -> Result<(), Box<dyn Error>> {
     dotenv::dotenv()?;
 
-    let day = Local::today().day();
+    let day = if let Some(day) = std::env::args().skip(1).next() {
+        day.parse::<u32>().unwrap()
+    } else {
+        Local::today().day()
+    };
     let work_dir = std::env::current_dir().unwrap();
     let crate_name = format!("day-{}", TwoDigits(day));
     let session_cookie = std::env::var("AOC_SESSION_COOKIE").expect("AOC_SESSION_COOKIE must be set");
