@@ -3,10 +3,31 @@ pub fn part_1<I: IntoIterator<Item=String>>(lines: I, steps: usize) -> usize {
     let mut flashes = 0;
 
     for _ in 0..steps {
-        flashes += map.step();
+        let flashed: usize = map.step()
+            .into_iter()
+            .map(|row| row.into_iter().filter(|flashed| *flashed).count())
+            .sum();
+
+        flashes += flashed;
     }
 
     flashes
+}
+
+pub fn part_2<I: IntoIterator<Item=String>>(lines: I) -> usize {
+    let mut map: OctopusMap<10, 10> = OctopusMap::from_iter(lines);
+
+    let mut step = 1;
+
+    loop {
+        let flashed = map.step();
+
+        if flashed.into_iter().all(|row| row.into_iter().all(|flashed| flashed)) {
+            return step;
+        }
+
+        step += 1;
+    }
 }
 
 const FLASH_LEVEL: u32 = 9;
@@ -17,15 +38,15 @@ pub struct OctopusMap<const WIDTH: usize, const HEIGHT: usize> {
 
 impl<const WIDTH: usize, const HEIGHT: usize> OctopusMap<WIDTH, HEIGHT> {
 
-    pub fn step(&mut self) -> usize {
+    pub fn step(&mut self) -> [[bool; WIDTH]; HEIGHT] {
         self.increase_energy();
-        let flashes = self.flash();
+        let flashed = self.flash();
         self.reset_energy();
 
-        flashes
+        flashed
     }
 
-    fn flash(&mut self) -> usize {
+    fn flash(&mut self) -> [[bool; WIDTH]; HEIGHT] {
         let mut flashed = [[false; WIDTH]; HEIGHT];
 
         for row in 0..HEIGHT {
@@ -35,9 +56,6 @@ impl<const WIDTH: usize, const HEIGHT: usize> OctopusMap<WIDTH, HEIGHT> {
         }
 
         flashed
-            .into_iter()
-            .map(|row| row.into_iter().filter(|flashed| *flashed).count())
-            .sum()
     }
 
     fn flash_rec(&mut self, row: usize, column: usize, flashed: &mut [[bool; WIDTH]]) {
@@ -128,5 +146,23 @@ mod tests {
         assert_eq!(part_1(lines.clone(), 10), 204);
 
         assert_eq!(part_1(lines, 100), 1656);
+    }
+
+    #[test]
+    fn part_2_works() {
+        let lines = [
+            "5483143223",
+            "2745854711",
+            "5264556173",
+            "6141336146",
+            "6357385478",
+            "4167524645",
+            "2176841721",
+            "6882881134",
+            "4846848554",
+            "5283751526",
+        ].map(ToString::to_string);
+
+        assert_eq!(part_2(lines), 195);
     }
 }
