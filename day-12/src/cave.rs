@@ -11,15 +11,23 @@ impl NodeId {
         cs[other].connected_caves.insert(self);
     }
 
-    fn available_caves<'a>(self, cs: &'a CaveSystem, visited: &'a [NodeId]) -> impl Iterator<Item=NodeId> + 'a {
+    fn available_caves<'a>(self, cs: &'a CaveSystem, visited: &'a [NodeId], visited_twice: &'a Option<NodeId>) -> impl Iterator<Item=NodeId> + 'a {
         cs[self].connected_caves
             .iter()
-            .filter(|cave| cave.big(cs) || !visited.contains(*cave))
+            .filter(|cave| {
+                cave.is_big(cs) ||
+                    visited_twice.is_none() ||
+                    !visited.contains(*cave)
+            })
             .copied()
     }
 
-    fn big(self, cs: &CaveSystem) -> bool {
+    fn is_big(self, cs: &CaveSystem) -> bool {
         *&cs[self].big
+    }
+
+    pub fn name(self, cs: &CaveSystem) -> &str {
+        &cs[self].name
     }
 
 }
@@ -27,16 +35,18 @@ impl NodeId {
 #[derive(Debug)]
 pub struct Cave {
     id: NodeId,
+    name: String,
     big: bool,
     connected_caves: HashSet<NodeId>,
 }
 
 impl Cave {
 
-    fn new(name: &str, id: NodeId) -> Self {
+    fn new(name: String, id: NodeId) -> Self {
         let big = name.chars().next().unwrap().is_uppercase();
 
         Self {
+            name,
             big,
             connected_caves: HashSet::new(),
             id,
@@ -57,13 +67,13 @@ impl CaveSystem {
         let end = self.node_id(end);
         let current_path = vec![];
 
-        self.paths_to(end, start, current_path)
+        self.paths_to(end, start, current_path, None)
     }
 
-    fn paths_to(&self, end: NodeId, current: NodeId, current_path: Vec<NodeId>) -> Vec<Vec<NodeId>> {
+    fn paths_to(&self, end: NodeId, current: NodeId, current_path: Vec<NodeId>, visited_twice: Option<NodeId>) -> Vec<Vec<NodeId>> {
         let mut paths = vec![];
 
-        if current.available_caves(self, &current_path).any(|cave| cave == end) {
+        if current.available_caves(self, &current_path, &visited_twice).any(|cave| cave == end) {
             let mut path = current_path.clone();
             path.push(current);
             path.push(end);
@@ -71,11 +81,21 @@ impl CaveSystem {
             paths.push(path);
         }
 
-        for connected_cave in current.available_caves(self, &current_path) {
+        for connected_cave in current.available_caves(self, &current_path, &visited_twice) {
+            let visited_twice = if visited_twice.is_none() {
+                if current_path.contains(&connected_cave) {
+                    Some(connected_cave)
+                } else {
+                    None
+                }
+            } else {
+                visited_twice
+            };
+
             let mut current_path = current_path.clone();
             current_path.push(current);
 
-            paths.append(&mut self.paths_to(end, connected_cave, current_path));
+            paths.append(&mut self.paths_to(end, connected_cave, current_path, visited_twice));
         }
 
         paths
@@ -94,7 +114,7 @@ impl CaveSystem {
         } else {
             let index = self.caves.len();
             let id = NodeId(index);
-            self.caves.push(Cave::new(&name, id));
+            self.caves.push(Cave::new(name.clone(), id));
             self.caves[index].id = id;
             self.by_name.insert(name, id);
 
